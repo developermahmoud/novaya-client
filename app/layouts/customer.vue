@@ -9,7 +9,7 @@
         </NuxtLink>
       </div>
       <nav class="p-4 space-y-2 flex-1">
-        <NuxtLink to="/dashboard" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+        <NuxtLink to="/customer/dashboard" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
           <span class="text-xl">📊</span>
           <span>لوحة التحكم</span>
         </NuxtLink>
@@ -28,7 +28,7 @@
       </nav>
       
       <!-- User Info -->
-      <div v-if="user" class="absolute bottom-0 right-0 left-0 p-4 border-t border-gray-200 bg-white">
+      <div v-if="user" class="p-4 border-t border-gray-200 bg-white">
         <div class="flex items-center gap-3 mb-3">
           <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">
             {{ user.name.charAt(0) }}
@@ -92,7 +92,6 @@ const handleLogout = async () => {
 }
 
 onMounted(() => {
-  // Auto-close sidebar on mobile
   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
     sidebarOpen.value = false
   }

@@ -115,7 +115,7 @@ const bookingDate = computed(() => {
 })
 
 const handlePrint = () => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.print) {
     window.print()
   }
 }

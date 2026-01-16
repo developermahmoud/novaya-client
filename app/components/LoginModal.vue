@@ -70,8 +70,23 @@ const handleSubmit = async () => {
     const result = await login(normalizedMobile, password.value)
     if (result.success) {
       emit('close')
+      
+      // Wait a bit to ensure user data is loaded
       await nextTick()
-      await navigateTo('/dashboard', { replace: true })
+      
+      // Get user role and navigate to appropriate dashboard
+      const auth = useAuth()
+      const { getDashboardRoute } = await import('~/utils/routes')
+      
+      // Wait for user data if not available yet
+      if (!auth.user.value) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      
+      const userRole = auth.user.value?.role || 'customer'
+      const dashboardRoute = getDashboardRoute(userRole)
+      
+      await navigateTo(dashboardRoute, { replace: true })
     } else {
       error.value = result.error || 'رقم الهاتف أو كلمة المرور غير صحيحة'
     }

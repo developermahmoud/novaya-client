@@ -5,30 +5,46 @@
       <div class="p-6 border-b border-gray-200">
         <NuxtLink to="/" class="flex items-center gap-3">
           <img src="/logo.png" alt="نوفايا" class="h-12 w-auto" />
-          <span class="text-xl font-bold text-gray-800">نوفايا</span>
+          <span class="text-xl font-bold text-gray-800">نوفايا - إدارة</span>
         </NuxtLink>
       </div>
       <nav class="p-4 space-y-2 flex-1">
-        <NuxtLink to="/dashboard" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+        <NuxtLink to="/admin/dashboard" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
           <span class="text-xl">📊</span>
           <span>لوحة التحكم</span>
         </NuxtLink>
-        <NuxtLink to="/" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
-          <span class="text-xl">🏠</span>
-          <span>الرئيسية</span>
+        <NuxtLink to="/admin/users" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+          <span class="text-xl">👥</span>
+          <span>المستخدمين</span>
         </NuxtLink>
-        <NuxtLink to="/" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+        <NuxtLink to="/admin/bookings" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+          <span class="text-xl">📅</span>
+          <span>الحجوزات</span>
+        </NuxtLink>
+        <NuxtLink to="/admin/categories" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+          <span class="text-xl">📁</span>
+          <span>الأقسام</span>
+        </NuxtLink>
+        <NuxtLink to="/admin/services" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
           <span class="text-xl">💅</span>
-          <span>خدماتنا</span>
+          <span>الخدمات</span>
         </NuxtLink>
-        <NuxtLink to="/" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
-          <span class="text-xl">📞</span>
-          <span>اتصل بنا</span>
+        <NuxtLink to="/admin/employees" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+          <span class="text-xl">👨‍💼</span>
+          <span>الموظفين</span>
+        </NuxtLink>
+        <NuxtLink to="/admin/reports" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+          <span class="text-xl">📈</span>
+          <span>التقارير</span>
+        </NuxtLink>
+        <NuxtLink to="/admin/settings" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+          <span class="text-xl">⚙️</span>
+          <span>الإعدادات</span>
         </NuxtLink>
       </nav>
       
       <!-- User Info -->
-      <div v-if="user" class="absolute bottom-0 right-0 left-0 p-4 border-t border-gray-200 bg-white">
+      <div v-if="user" class="p-4 border-t border-gray-200 bg-white">
         <div class="flex items-center gap-3 mb-3">
           <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">
             {{ user.name.charAt(0) }}
@@ -59,7 +75,7 @@
           </button>
           <div class="flex items-center gap-4">
             <div class="text-sm text-gray-600">
-              <span class="font-semibold text-gray-800">نوفايا - صالون نسائي</span>
+              <span class="font-semibold text-gray-800">لوحة تحكم المدير</span>
             </div>
           </div>
         </div>
@@ -77,6 +93,8 @@
 </template>
 
 <script setup>
+import { getDashboardRoute } from '~/utils/routes'
+
 const { user, logout } = useAuth()
 const sidebarOpen = ref(true)
 

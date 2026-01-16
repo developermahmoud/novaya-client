@@ -130,7 +130,11 @@ const handleSubmit = async () => {
     if (result.success) {
       emit('close')
       await nextTick()
-      await navigateTo('/dashboard', { replace: true })
+      // Get user role and navigate to appropriate dashboard
+      const auth = useAuth()
+      const { getDashboardRoute } = await import('~/utils/routes')
+      const dashboardRoute = getDashboardRoute(auth.user.value?.role || 'customer')
+      await navigateTo(dashboardRoute, { replace: true })
     } else {
       // Set field-specific errors if available
       if (result.fieldErrors) {

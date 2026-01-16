@@ -78,6 +78,7 @@ apiClient.interceptors.response.use(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
+          // Redirect to home page
           window.location.href = '/'
         }
         processQueue(error, null)
@@ -126,6 +127,7 @@ apiClient.interceptors.response.use(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
+          // Redirect to home page
           window.location.href = '/'
         }
         processQueue(refreshError, null)

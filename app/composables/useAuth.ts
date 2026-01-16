@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'reception' | 'employee' | 'client'
+export type UserRole = 'admin' | 'employee' | 'customer' | 'receptionist'
 
 export interface User {
   id: string
@@ -9,16 +9,16 @@ export interface User {
   createdAt: string | Date
 }
 
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   success: boolean
   message?: string
   data: T
 }
 
-interface LoginResponseData {
-  token: string
-  user?: User
-}
+// Login response can be either:
+// 1. { success: true, data: "token_string" } - token as string
+// 2. { success: true, data: { token: "token_string", user: {...} } } - token and user as object
+type LoginResponseData = string | { token: string; user?: User }
 
 interface RegisterResponseData {
   token: string
@@ -41,12 +41,21 @@ export const useAuth = () => {
         throw new Error('No user data received')
       }
       
+      // Map role from backend to frontend (support both 'client' and 'customer')
+      let role: UserRole = (userData.role || 'customer') as UserRole
+      if (role === 'client') {
+        role = 'customer'
+      }
+      if (role === 'reception') {
+        role = 'receptionist'
+      }
+      
       user.value = {
         id: userData.id?.toString() || userData.id,
         name: userData.name,
         email: userData.email,
         phone: userData.phone || userData.mobile,
-        role: userData.role || 'client',
+        role: role,
         createdAt: userData.created_at ? new Date(userData.created_at) : (userData.createdAt ? new Date(userData.createdAt) : new Date()),
       }
       
@@ -69,42 +78,84 @@ export const useAuth = () => {
       return
     }
 
-    const accessToken = localStorage.getItem('access_token')
-    
-    if (accessToken) {
-      // Try to fetch current user
-      await fetchCurrentUser()
-    } else {
+    try {
+      const accessToken = localStorage.getItem('access_token')
+      
+      if (accessToken) {
+        // Try to fetch current user
+        const success = await fetchCurrentUser()
+        if (!success) {
+          // If fetch failed, clear token
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          user.value = null
+        }
+      } else {
+        user.value = null
+      }
+    } catch (error) {
+      console.error('Auth initialization error:', error)
       user.value = null
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+      }
+    } finally {
+      isLoading.value = false
     }
-    
-    isLoading.value = false
   }
 
   // Login
-  const login = async (phone: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (mobile: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await api.post<ApiResponse<LoginResponseData>>('/auth/login', {
-        phone,
+        mobile,
         password,
       })
 
       const { data } = response.data
-      const token = data.token
+      
+      // Handle both response formats:
+      // 1. data is a string (token directly)
+      // 2. data is an object with { token, user? }
+      let token: string
+      let userData: User | undefined
+      
+      if (typeof data === 'string') {
+        // Token is directly in data
+        token = data
+      } else {
+        // Token is in data.token
+        token = data.token
+        userData = data.user
+      }
 
-      // Store token
+      // Store token first
       if (typeof window !== 'undefined') {
         localStorage.setItem('access_token', token)
       }
 
-      // Fetch user data
-      if (data.user) {
+      // Fetch user data - always fetch to ensure we have latest data
+      if (userData) {
+        // Map role if needed
+        let role: UserRole = (userData.role || 'customer') as UserRole
+        if (role === 'client') {
+          role = 'customer'
+        }
+        if (role === 'reception') {
+          role = 'receptionist'
+        }
+        
         user.value = {
-          ...data.user,
-          createdAt: data.user.created_at ? new Date(data.user.created_at) : new Date(),
+          id: userData.id?.toString() || userData.id,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone || userData.mobile,
+          role: role,
+          createdAt: userData.created_at ? new Date(userData.created_at) : (userData.createdAt ? new Date(userData.createdAt) : new Date()),
         }
       } else {
-        // If user not in response, fetch it
+        // If user not in response, fetch it from /auth/me
         await fetchCurrentUser()
       }
 
@@ -149,7 +200,7 @@ export const useAuth = () => {
     email: string,
     mobile: string,
     password: string,
-    role: UserRole = 'client'
+    role: UserRole = 'customer'
   ): Promise<{ success: boolean; error?: string; fieldErrors?: Record<string, string[]> }> => {
     try {
       const response = await api.post<ApiResponse<RegisterResponseData>>('/auth/register', {

@@ -30,7 +30,7 @@
             </a>
             <template v-if="user">
               <NuxtLink
-                to="/dashboard"
+                :to="dashboardRoute"
                 class="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-all duration-200 shadow-md hover:shadow-lg font-semibold text-sm"
               >
                 <span>لوحة التحكم</span>
@@ -77,8 +77,14 @@
 
 <script setup lang="ts">
 import { Phone, MessageCircle } from 'lucide-vue-next'
+import { getDashboardRoute } from '~/utils/routes'
 
 const { user } = useAuth()
 const showLogin = ref(false)
 const showRegister = ref(false)
+
+const dashboardRoute = computed(() => {
+  if (!user.value) return '/customer/dashboard'
+  return getDashboardRoute(user.value.role)
+})
 </script>

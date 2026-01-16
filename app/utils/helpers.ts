@@ -47,3 +47,14 @@ export const formatTime12Hour = (time24: string): string => {
     return `${hour24 - 12}:${mins} م`
   }
 }
+
+export const formatDate = (dateString: string | Date): string => {
+  const dateObj = typeof dateString === 'string' ? new Date(dateString) : dateString
+  const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+  const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+  const day = days[dateObj.getDay()]
+  const dayNum = dateObj.getDate()
+  const month = months[dateObj.getMonth()]
+  const year = dateObj.getFullYear()
+  return `${day}، ${dayNum} ${month} ${year}`
+}

@@ -65,7 +65,7 @@ const sizeClasses = {
   lg: 'px-6 py-3 text-lg',
 }
 
-const iconSize = computed(() => {
+const iconSize = computed<number>(() => {
   return props.size === 'sm' ? 16 : props.size === 'lg' ? 24 : 20
 })
 </script>
