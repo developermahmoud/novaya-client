@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary: #d4a574;
+  --primary-dark: #b8925f;
+  --primary-hover: #c89664;
+  --secondary: #f5e6d3;
+  --accent: #8b6f47;
+  --light-bg: #f9fafb;
+  --border-color: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+  direction: rtl;
+  text-align: right;
+}
+
+/* Utility classes */
+.bg-primary { background-color: var(--primary); }
+.bg-primary-dark { background-color: var(--primary-dark); }
+.bg-primary-hover { background-color: var(--primary-hover); }
+.bg-secondary { background-color: var(--secondary); }
+.bg-light-bg { background-color: var(--light-bg); }
+
+.text-primary { color: var(--primary); }
+.text-primary-dark { color: var(--primary-dark); }
+.text-text-primary { color: var(--text-primary); }
+.text-text-secondary { color: var(--text-secondary); }
+
+.border-color { border-color: var(--border-color); }
+
+/* RTL specific styles */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="rtl"] .container {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
