@@ -29,7 +29,7 @@
         </div>
         <div class="flex justify-between items-center mb-2">
           <span class="text-text-secondary">الوقت:</span>
-          <span class="font-semibold">{{ formatTime12Hour(booking.time) }}</span>
+          <span class="font-semibold">{{ formatTime12Hour(booking.booking_time) }}</span>
         </div>
         <div class="flex justify-between items-center">
           <span class="text-text-secondary">العميل:</span>
@@ -60,7 +60,7 @@
       <div class="border-t-2 border-gray-400 pt-4">
         <div class="flex justify-between items-center mb-2">
           <span class="text-lg font-semibold text-text-primary">الإجمالي:</span>
-          <span class="text-2xl font-bold text-primary">{{ booking.totalPrice }} ريال</span>
+          <span class="text-2xl font-bold text-primary">{{ booking.total_amount }} ريال</span>
         </div>
         <div class="flex justify-between items-center">
           <span class="text-text-secondary">الحالة:</span>
@@ -88,13 +88,12 @@
 <script setup lang="ts">
 import { Printer } from 'lucide-vue-next'
 import { format } from 'date-fns'
-import type { Booking, Service } from '~/composables/useData'
+import type { ApiUserBooking } from '~/composables/useData'
 import { formatTime12Hour } from '~/utils/helpers'
 
 interface Props {
   isOpen: boolean
-  booking: Booking | null
-  services: Service[]
+  booking: ApiUserBooking | null
   clientName: string
 }
 
@@ -106,12 +105,18 @@ defineEmits<{
 
 const bookingServices = computed(() => {
   if (!props.booking) return []
-  return props.services.filter(s => props.booking!.services.includes(s.id))
+  // API booking already has services with all details
+  return props.booking.services.map(s => ({
+    id: s.service_id,
+    name: s.service_name || s.service.name,
+    duration: s.duration,
+    price: s.price
+  }))
 })
 
 const bookingDate = computed(() => {
   if (!props.booking) return new Date()
-  return new Date(props.booking.date)
+  return new Date(props.booking.booking_date)
 })
 
 const handlePrint = () => {

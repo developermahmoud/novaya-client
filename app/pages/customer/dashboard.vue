@@ -22,7 +22,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm mb-1">إجمالي الحجوزات</p>
-              <p class="text-2xl font-bold text-gray-800">{{ customerBookings.length }}</p>
+              <p class="text-2xl font-bold text-gray-800">{{ pagination.total || 0 }}</p>
             </div>
             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <Calendar :size="24" class="text-blue-600" />
@@ -34,7 +34,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-600 text-sm mb-1">الحجوزات المعلقة</p>
-              <p class="text-2xl font-bold text-yellow-600">{{ pendingBookings.length }}</p>
+              <p class="text-2xl font-bold text-yellow-600">{{ pendingBookings?.length || 0 }}</p>
             </div>
             <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
               <Clock :size="24" class="text-yellow-600" />
@@ -96,7 +96,7 @@
           <button
             v-for="filter in filters"
             :key="filter.value"
-            @click="activeFilter = filter.value"
+            @click="handleFilterChange(filter.value)"
             :class="[
               'px-4 py-2 font-medium transition-colors border-b-2',
               activeFilter === filter.value
@@ -108,8 +108,24 @@
           </button>
         </div>
 
-        <!-- Bookings List -->
-        <div v-if="filteredBookings.length === 0" class="text-center py-12">
+        <!-- Loading State -->
+        <div v-if="isLoadingBookings" class="text-center py-12">
+          <p class="text-gray-600">جاري تحميل الحجوزات...</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="bookingsError" class="text-center py-12">
+          <p class="text-red-600 mb-4">{{ bookingsError }}</p>
+          <button
+            @click="loadBookings(currentPage)"
+            class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="filteredBookings.length === 0" class="text-center py-12">
           <Calendar :size="48" class="mx-auto text-gray-400 mb-4" />
           <p class="text-gray-600 text-lg">لا توجد حجوزات {{ activeFilter === 'all' ? '' : filters.find(f => f.value === activeFilter)?.label.toLowerCase() }}</p>
           <NuxtLink
@@ -120,7 +136,8 @@
           </NuxtLink>
         </div>
 
-        <div v-else class="space-y-4">
+        <!-- Bookings List -->
+        <div v-else-if="!isLoadingBookings && !bookingsError && filteredBookings.length > 0" class="space-y-4">
           <div
             v-for="booking in filteredBookings"
             :key="booking.id"
@@ -130,38 +147,43 @@
               <div class="flex-1">
                 <div class="flex items-center gap-3 mb-2">
                   <h3 class="text-lg font-semibold text-gray-800">
-                    حجز #{{ booking.id.slice(-6) }}
+                    حجز #{{ booking.id }}
                   </h3>
                   <span
                     :class="[
                       'px-3 py-1 rounded-full text-xs font-semibold',
-                      getStatusConfig(booking.status).color
+                      getStatusConfigSafe(booking.status).color
                     ]"
                   >
-                    {{ getStatusConfig(booking.status).text }}
+                    {{ getStatusConfigSafe(booking.status).text }}
                   </span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                   <div class="flex items-center gap-2">
                     <Calendar :size="16" class="text-gray-400" />
-                    <span>{{ formatDate(booking.date) }}</span>
+                    <span>{{ formatDate(booking.booking_date) }}</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <Clock :size="16" class="text-gray-400" />
-                    <span>{{ formatTime12Hour(booking.time) }}</span>
+                    <span>{{ formatTime12Hour(booking.booking_time) }}</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <Scissors :size="16" class="text-gray-400" />
-                    <span>{{ getServiceNames(booking.services, services) }}</span>
+                    <span>{{ getServiceNamesFromApi(booking.services) }}</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <DollarSign :size="16" class="text-gray-400" />
-                    <span class="font-semibold text-gray-800">{{ booking.totalPrice }} ريال</span>
+                    <span class="font-semibold text-gray-800">{{ booking.total_amount }} ريال</span>
+                  </div>
+                  <div v-if="booking.notes" class="col-span-2 flex items-start gap-2">
+                    <span class="text-xs text-gray-500">ملاحظات:</span>
+                    <span class="text-xs text-gray-600">{{ booking.notes }}</span>
                   </div>
                 </div>
               </div>
               <div class="flex gap-2">
                 <button
+                v-if="booking.status === 'completed'"
                   @click="viewInvoice(booking)"
                   class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
                 >
@@ -179,6 +201,60 @@
             </div>
           </div>
         </div>
+
+        <!-- Pagination -->
+        <div v-if="!isLoadingBookings && pagination.last_page > 1" class="mt-6 flex items-center justify-center gap-2">
+          <button
+            @click="previousPage"
+            :disabled="currentPage === 1 || isLoadingBookings"
+            :class="[
+              'px-4 py-2 rounded-lg transition-colors flex items-center gap-2',
+              currentPage === 1 || isLoadingBookings
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+            ]"
+          >
+            <ArrowRight :size="18" />
+            <span>السابق</span>
+          </button>
+          
+          <div class="flex items-center gap-1 flex-wrap justify-center">
+            <button
+              v-for="page in pagination.last_page"
+              :key="page"
+              @click="goToPage(page)"
+              :disabled="isLoadingBookings"
+              :class="[
+                'px-4 py-2 rounded-lg transition-colors min-w-[40px]',
+                currentPage === page
+                  ? 'bg-primary text-white'
+                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50',
+                isLoadingBookings ? 'opacity-50 cursor-not-allowed' : ''
+              ]"
+            >
+              {{ page }}
+            </button>
+          </div>
+          
+          <button
+            @click="nextPage"
+            :disabled="currentPage === pagination.last_page || isLoadingBookings"
+            :class="[
+              'px-4 py-2 rounded-lg transition-colors flex items-center gap-2',
+              currentPage === pagination.last_page || isLoadingBookings
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+            ]"
+          >
+            <span>التالي</span>
+            <ArrowLeft :size="18" />
+          </button>
+        </div>
+
+        <!-- Pagination Info -->
+        <div v-if="!isLoadingBookings && pagination.total > 0" class="mt-4 text-center text-sm text-gray-600">
+          عرض {{ ((currentPage - 1) * pagination.per_page) + 1 }} إلى {{ Math.min(currentPage * pagination.per_page, pagination.total) }} من {{ pagination.total }} حجز
+        </div>
       </div>
     </div>
 
@@ -186,7 +262,6 @@
     <InvoiceModal
       :is-open="showInvoice"
       :booking="selectedBooking"
-      :services="services"
       :client-name="user?.name || ''"
       @close="showInvoice = false"
     />
@@ -194,54 +269,130 @@
 </template>
 
 <script setup lang="ts">
-import { Calendar, Clock, DollarSign, Scissors, FileText } from 'lucide-vue-next'
-import type { Booking } from '~/composables/useData'
-import { getStatusConfig, getServiceNames, formatTime12Hour } from '~/utils/helpers'
+import { Calendar, Clock, DollarSign, Scissors, FileText, ArrowLeft, ArrowRight } from 'lucide-vue-next'
+import type { ApiUserBooking } from '~/composables/useData'
+import { getStatusConfig } from '~/utils/helpers'
 
 definePageMeta({
   layout: 'customer'
 })
 
 const { user } = useAuth()
-const { bookings, services, updateBooking } = useData()
+const { services, fetchUserBookings, cancelBooking: cancelBookingApi } = useData()
 
 const activeFilter = ref<'all' | 'pending' | 'completed' | 'cancelled'>('all')
 const showInvoice = ref(false)
-const selectedBooking = ref<Booking | null>(null)
+const selectedBooking = ref<ApiUserBooking | null>(null)
+const isCancelling = ref(false)
+
+// Pagination state
+const currentPage = ref(1)
+const pagination = ref({
+  current_page: 1,
+  per_page: 15,
+  total: 0,
+  last_page: 1
+})
+const isLoadingBookings = ref(false)
+const bookingsError = ref('')
+
+// API bookings data
+const userBookings = ref<ApiUserBooking[]>([])
+
+// Fetch bookings from API
+const loadBookings = async (page: number = 1, status?: 'pending' | 'completed' | 'cancelled') => {
+  if (!user.value) {
+    console.log('User not loaded yet, skipping bookings fetch')
+    return
+  }
+  
+  isLoadingBookings.value = true
+  bookingsError.value = ''
+  
+  try {
+    console.log('Fetching bookings for page:', page, 'status:', status || 'all')
+    const result = await fetchUserBookings(page, status)
+    console.log('Bookings fetch result:', result)
+    
+    if (result.success && result.data) {
+      userBookings.value = result.data.bookings || []
+      pagination.value = result.data.pagination
+      currentPage.value = result.data.pagination.current_page
+      console.log('Bookings loaded:', userBookings.value.length, 'bookings')
+    } else {
+      bookingsError.value = result.error || 'فشل جلب الحجوزات'
+      console.error('Failed to load bookings:', result.error)
+    }
+  } catch (error) {
+    console.error('Error loading bookings:', error)
+    bookingsError.value = 'حدث خطأ أثناء جلب الحجوزات'
+  } finally {
+    isLoadingBookings.value = false
+  }
+}
+
+// Load bookings on mount - wait for user to be loaded
+watch([user], ([newUser]) => {
+  if (newUser && userBookings.value.length === 0 && !isLoadingBookings.value) {
+    const status = activeFilter.value === 'all' ? undefined : activeFilter.value
+    loadBookings(1, status)
+  }
+}, { immediate: true })
+
+onMounted(async () => {
+  // Wait a bit for user to be loaded if not already
+  if (!user.value) {
+    await nextTick()
+  }
+  if (user.value && userBookings.value.length === 0 && !isLoadingBookings.value) {
+    const status = activeFilter.value === 'all' ? undefined : activeFilter.value
+    loadBookings(1, status)
+  }
+})
 
 const customerBookings = computed(() => {
-  if (!user.value) return []
-  return bookings.value
-    .filter(b => b.clientId === user.value!.id)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  return userBookings.value || []
 })
 
 const pendingBookings = computed(() => {
-  return customerBookings.value.filter(b => b.status === 'pending')
+  return (customerBookings.value || []).filter(b => b.status === 'pending')
 })
 
 const totalSpent = computed(() => {
-  return customerBookings.value
+  return (customerBookings.value || [])
     .filter(b => b.status === 'completed')
-    .reduce((sum, b) => sum + b.totalPrice, 0)
+    .reduce((sum, b) => sum + b.total_amount, 0)
 })
 
-const filters = computed(() => [
-  { value: 'all' as const, label: 'الكل', count: customerBookings.value.length },
-  { value: 'pending' as const, label: 'معلقة', count: customerBookings.value.filter(b => b.status === 'pending').length },
-  { value: 'completed' as const, label: 'مكتملة', count: customerBookings.value.filter(b => b.status === 'completed').length },
-  { value: 'cancelled' as const, label: 'ملغاة', count: customerBookings.value.filter(b => b.status === 'cancelled').length },
-])
+const filters = computed(() => {
+  const bookings = customerBookings.value || []
+  return [
+    { value: 'all' as const, label: 'الكل', count: pagination.value?.total || 0 },
+    { value: 'pending' as const, label: 'معلقة', count: pendingBookings.value?.length || 0 },
+    { value: 'completed' as const, label: 'مكتملة', count: bookings.filter(b => b.status === 'completed').length },
+    { value: 'cancelled' as const, label: 'ملغاة', count: bookings.filter(b => b.status === 'cancelled').length },
+  ]
+})
 
 const filteredBookings = computed(() => {
-  if (activeFilter.value === 'all') {
-    return customerBookings.value
-  }
-  return customerBookings.value.filter(b => b.status === activeFilter.value)
+  // Since we're now fetching from API with status filter, just return all bookings
+  // The API already filters by status
+  return customerBookings.value || []
 })
 
-const formatDate = (date: Date | string) => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date
+// Handle filter change - fetch from API with new status
+const handleFilterChange = (filter: 'all' | 'pending' | 'completed' | 'cancelled') => {
+  activeFilter.value = filter
+  // Reset to page 1 when changing filter
+  currentPage.value = 1
+  
+  // If 'all', don't pass status parameter, otherwise pass the status
+  const status = filter === 'all' ? undefined : filter
+  loadBookings(1, status)
+}
+
+const formatDate = (dateStr: string) => {
+  const dateObj = new Date(dateStr)
   const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
   const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
   const day = days[dateObj.getDay()]
@@ -251,14 +402,83 @@ const formatDate = (date: Date | string) => {
   return `${day}، ${dayNum} ${month} ${year}`
 }
 
-const viewInvoice = (booking: Booking) => {
+const formatTime12Hour = (time24: string) => {
+  const parts = time24.split(':')
+  const hours = parts[0] ? parseInt(parts[0], 10) : 0
+  const minutes = parts[1] ? parseInt(parts[1], 10) : 0
+  const hour12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours)
+  const period = hours >= 12 ? 'م' : 'ص'
+  return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`
+}
+
+const getServiceNamesFromApi = (services: ApiUserBooking['services']) => {
+  return services.map(s => s.service_name).join('، ')
+}
+
+// Safe wrapper for getStatusConfig to handle string status
+const getStatusConfigSafe = (status: string) => {
+  const validStatuses: ('pending' | 'completed' | 'cancelled')[] = ['pending', 'completed', 'cancelled']
+  const normalizedStatus = validStatuses.includes(status as any) ? status as 'pending' | 'completed' | 'cancelled' : 'pending'
+  return getStatusConfig(normalizedStatus)
+}
+
+const viewInvoice = (booking: ApiUserBooking) => {
   selectedBooking.value = booking
   showInvoice.value = true
 }
 
-const cancelBooking = (bookingId: string) => {
-  if (confirm('هل أنت متأكد من إلغاء هذا الحجز؟')) {
-    updateBooking(bookingId, { status: 'cancelled' })
+const cancelBooking = async (bookingId: number) => {
+  if (!confirm('هل أنت متأكد من إلغاء هذا الحجز؟')) {
+    return
+  }
+  
+  isCancelling.value = true
+  
+  try {
+    const result = await cancelBookingApi(bookingId)
+    
+    if (result.success) {
+      // Reload bookings to reflect the cancellation
+      const status = activeFilter.value === 'all' ? undefined : activeFilter.value
+      await loadBookings(currentPage.value, status)
+      
+      // Show success message (you can add a toast notification here)
+      alert('تم إلغاء الحجز بنجاح')
+    } else {
+      alert(result.error || 'فشل إلغاء الحجز')
+    }
+  } catch (error) {
+    console.error('Error cancelling booking:', error)
+    alert('حدث خطأ أثناء إلغاء الحجز')
+  } finally {
+    isCancelling.value = false
+  }
+}
+
+// Pagination handlers
+const goToPage = (page: number) => {
+  if (page >= 1 && page <= pagination.value.last_page && page !== currentPage.value) {
+    currentPage.value = page
+    const status = activeFilter.value === 'all' ? undefined : activeFilter.value
+    loadBookings(page, status)
+  }
+}
+
+const previousPage = () => {
+  if (currentPage.value > 1) {
+    const newPage = currentPage.value - 1
+    currentPage.value = newPage
+    const status = activeFilter.value === 'all' ? undefined : activeFilter.value
+    loadBookings(newPage, status)
+  }
+}
+
+const nextPage = () => {
+  if (currentPage.value < pagination.value.last_page) {
+    const newPage = currentPage.value + 1
+    currentPage.value = newPage
+    const status = activeFilter.value === 'all' ? undefined : activeFilter.value
+    loadBookings(newPage, status)
   }
 }
 
