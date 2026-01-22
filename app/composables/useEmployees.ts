@@ -24,6 +24,11 @@ export interface Employee {
   updated_at: string
 }
 
+export interface EmployeeDropdown {
+  id: number
+  name: string
+}
+
 export const useEmployees = () => {
   const api = useApi()
 
@@ -31,6 +36,17 @@ export const useEmployees = () => {
   const getEmployees = async (): Promise<Employee[]> => {
     try {
       const response = await api.get<ApiResponse<Employee[]>>('/employees')
+      const employees = response.data.data || []
+      return employees
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'فشل جلب الموظفين')
+    }
+  }
+
+  // Get employees for dropdown
+  const getEmployeesDropdown = async (): Promise<EmployeeDropdown[]> => {
+    try {
+      const response = await api.get<ApiResponse<EmployeeDropdown[]>>('/employees/dropdown')
       const employees = response.data.data || []
       return employees
     } catch (error: any) {
@@ -88,6 +104,7 @@ export const useEmployees = () => {
 
   return {
     getEmployees,
+    getEmployeesDropdown,
     createEmployee,
     updateEmployee,
     deleteEmployee,

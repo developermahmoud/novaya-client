@@ -1,6 +1,7 @@
 import type { User, UserRole } from './useAuth'
 
-export interface Service {
+// Local Service interface for useData (different from API Service)
+export interface LocalService {
   id: string
   name: string
   price: number
@@ -38,14 +39,16 @@ export interface Booking {
   createdAt: Date
 }
 
-export interface WorkingHours {
+// Local WorkingHours interface for useData (different from API WorkingHours)
+export interface LocalWorkingHours {
   day: string // 'sunday' | 'monday' | etc.
   isOpen: boolean
   startTime: string // HH:mm
   endTime: string // HH:mm
 }
 
-export interface Settings {
+// Local Settings interface for useData (different from API Settings)
+export interface LocalSettings {
   id: number
   address: string
   latitude?: number
@@ -121,7 +124,40 @@ export interface ApiUserBooking {
   updated_at: string
 }
 
-const defaultWorkingHours: WorkingHours[] = [
+export interface ApiBooking {
+  id: number
+  booking_date: string
+  booking_time: string
+  status: 'pending' | 'completed' | 'cancelled'
+  notes?: string
+  total_amount: number
+  customer_id: number
+  customer?: {
+    id: number
+    name: string
+    email: string
+    mobile: string
+    status: string
+    role: string
+  }
+  services: ApiBookingService[]
+  created_at: string
+  updated_at: string
+}
+
+interface ApiBookingsResponse {
+  success: boolean
+  message?: string
+  data: ApiBooking[]
+  current_page: number
+  per_page: number
+  total: number
+  last_page: number
+  from?: number
+  to?: number
+}
+
+const defaultWorkingHours: LocalWorkingHours[] = [
   { day: 'sunday', isOpen: true, startTime: '12:00', endTime: '00:00' },
   { day: 'monday', isOpen: true, startTime: '12:00', endTime: '00:00' },
   { day: 'tuesday', isOpen: true, startTime: '12:00', endTime: '00:00' },
@@ -132,11 +168,11 @@ const defaultWorkingHours: WorkingHours[] = [
 ]
 
 export const useData = () => {
-  const services = useState<Service[]>('data_services', () => [])
+  const services = useState<LocalService[]>('data_services', () => [])
   const bookings = useState<Booking[]>('data_bookings', () => [])
   const employees = useState<User[]>('data_employees', () => [])
-  const workingHours = useState<WorkingHours[]>('data_workingHours', () => defaultWorkingHours)
-  const settings = useState<Settings | null>('data_settings', () => null)
+  const workingHours = useState<LocalWorkingHours[]>('data_workingHours', () => defaultWorkingHours)
+  const settings = useState<LocalSettings | null>('data_settings', () => null)
   const isLoadingServices = useState<boolean>('data_loading_services', () => false)
   const isLoadingSettings = useState<boolean>('data_loading_settings', () => false)
   
@@ -184,7 +220,7 @@ export const useData = () => {
 
       // Initialize default services if empty
       if (!storedServices) {
-        const defaultServices: Service[] = [
+        const defaultServices: LocalService[] = [
           { id: '1', name: 'قص شعر', price: 100, duration: 60, category: 'شعر', createdAt: new Date() },
           { id: '2', name: 'صبغة شعر', price: 200, duration: 120, category: 'شعر', createdAt: new Date() },
           { id: '3', name: 'خيط الحواجب', price: 50, duration: 30, category: 'حواجب', createdAt: new Date() },
@@ -198,8 +234,8 @@ export const useData = () => {
     }
   }
 
-  const addService = (service: Omit<Service, 'id' | 'createdAt'>) => {
-    const newService: Service = {
+  const addService = (service: Omit<LocalService, 'id' | 'createdAt'>) => {
+    const newService: LocalService = {
       ...service,
       id: Date.now().toString(),
       createdAt: new Date(),
@@ -211,7 +247,7 @@ export const useData = () => {
     }
   }
 
-  const updateService = (id: string, service: Partial<Service>) => {
+  const updateService = (id: string, service: Partial<LocalService>) => {
     const updated = services.value.map(s => s.id === id ? { ...s, ...service } : s)
     services.value = updated
     if (typeof window !== 'undefined') {
@@ -272,7 +308,7 @@ export const useData = () => {
     }
   }
 
-  const updateWorkingHours = (hours: WorkingHours[]) => {
+  const updateWorkingHours = (hours: LocalWorkingHours[]) => {
     workingHours.value = hours
     if (typeof window !== 'undefined') {
       localStorage.setItem('novaya_workingHours', JSON.stringify(hours))
@@ -286,15 +322,15 @@ export const useData = () => {
       const response = await api.get<{ success: boolean; message?: string; data: ApiServiceResponse[] }>('/public/services')
       
       if (response.data.success && response.data.data) {
-        // Transform API response to Service interface
-        const transformedServices: Service[] = response.data.data
+        // Transform API response to LocalService interface
+        const transformedServices: LocalService[] = response.data.data
           .filter(apiService => apiService.status === 'active') // Only include active services
           .map(apiService => ({
             id: apiService.id.toString(),
             name: apiService.name,
             price: apiService.price,
             duration: apiService.duration,
-            category: (apiService.category?.name || 'شعر') as Service['category'],
+            category: (apiService.category?.name || 'شعر') as LocalService['category'],
             createdAt: apiService.created_at ? new Date(apiService.created_at) : new Date(),
           }))
         
@@ -333,7 +369,7 @@ export const useData = () => {
           'friday': 'friday',
         }
         
-        const transformedHours: WorkingHours[] = Object.entries(response.data.data.working_hours)
+        const transformedHours: LocalWorkingHours[] = Object.entries(response.data.data.working_hours)
           .map(([dayKey, hours]) => ({
             day: daysMap[dayKey] || dayKey,
             isOpen: hours.is_open,
@@ -468,6 +504,109 @@ export const useData = () => {
     }
   }
 
+  // Fetch all bookings from API with pagination and optional status filter
+  const fetchAllBookings = async (page: number = 1, status?: 'pending' | 'completed' | 'cancelled'): Promise<{ success: boolean; data?: { bookings: ApiBooking[]; pagination: { current_page: number; per_page: number; total: number; last_page: number; from?: number; to?: number } }; error?: string }> => {
+    try {
+      let url = `/bookings?page=${page}`
+      if (status) {
+        url += `&status=${status}`
+      }
+      
+      const response = await api.get<ApiBookingsResponse>(url)
+      
+      if (response.data.success && response.data.data) {
+        return {
+          success: true,
+          data: {
+            bookings: response.data.data,
+            pagination: {
+              current_page: response.data.current_page,
+              per_page: response.data.per_page,
+              total: response.data.total,
+              last_page: response.data.last_page,
+              from: response.data.from,
+              to: response.data.to,
+            }
+          }
+        }
+      } else {
+        return { success: false, error: response.data.message || 'فشل جلب الحجوزات' }
+      }
+    } catch (error: any) {
+      console.error('Error fetching all bookings:', error)
+      
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'حدث خطأ أثناء جلب الحجوزات'
+      
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  // Approve booking via API (complete booking)
+  interface ApproveBookingPayload {
+    services: Array<{
+      id: number
+      employee_id?: number
+    }>
+  }
+
+  const approveBooking = async (bookingId: number, payload: ApproveBookingPayload): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await api.put<{ success: boolean; message?: string }>(`/bookings/${bookingId}/complete`, payload)
+      
+      if (response.data.success) {
+        return { success: true }
+      } else {
+        return { success: false, error: response.data.message || 'فشل الموافقة على الحجز' }
+      }
+    } catch (error: any) {
+      console.error('Error completing booking:', error)
+      
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'حدث خطأ أثناء الموافقة على الحجز'
+      
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  // Delete service from booking via API
+  const deleteBookingService = async (bookingId: number, serviceId: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await api.delete<{ success: boolean; message?: string }>(`/bookings/${bookingId}/services/${serviceId}`)
+      
+      if (response.data.success) {
+        return { success: true }
+      } else {
+        return { success: false, error: response.data.message || 'فشل حذف الخدمة من الحجز' }
+      }
+    } catch (error: any) {
+      console.error('Error deleting booking service:', error)
+      
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'حدث خطأ أثناء حذف الخدمة'
+      
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  // Update employee for a service in booking via API
+  const updateBookingServiceEmployee = async (bookingId: number, serviceId: number, employeeId: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await api.put<{ success: boolean; message?: string }>(`/bookings/${bookingId}/services/${serviceId}/employee`, {
+        employee_id: employeeId
+      })
+      
+      if (response.data.success) {
+        return { success: true }
+      } else {
+        return { success: false, error: response.data.message || 'فشل تحديث الموظف' }
+      }
+    } catch (error: any) {
+      console.error('Error updating booking service employee:', error)
+      
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'حدث خطأ أثناء تحديث الموظف'
+      
+      return { success: false, error: errorMessage }
+    }
+  }
+
   // Initialize on client side
   if (typeof window !== 'undefined') {
     initializeData()
@@ -493,5 +632,11 @@ export const useData = () => {
     createBooking,
     fetchUserBookings,
     cancelBooking,
+    fetchAllBookings,
+    approveBooking,
+    deleteBookingService,
+    updateBookingServiceEmployee,
   }
 }
+
+export type { ApproveBookingPayload }

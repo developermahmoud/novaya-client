@@ -43,6 +43,7 @@
           <thead>
             <tr class="bg-light-bg">
               <th class="border border-color px-4 py-3 text-right text-sm font-semibold text-text-primary">الخدمة</th>
+              <th class="border border-color px-4 py-3 text-right text-sm font-semibold text-text-primary">الموظف</th>
               <th class="border border-color px-4 py-3 text-right text-sm font-semibold text-text-primary">المدة</th>
               <th class="border border-color px-4 py-3 text-right text-sm font-semibold text-text-primary">السعر</th>
             </tr>
@@ -50,6 +51,7 @@
           <tbody>
             <tr v-for="service in bookingServices" :key="service.id">
               <td class="border border-color px-4 py-3 text-sm">{{ service.name }}</td>
+              <td class="border border-color px-4 py-3 text-sm">{{ service.employeeName || 'غير محدد' }}</td>
               <td class="border border-color px-4 py-3 text-sm text-center">{{ service.duration }} دقيقة</td>
               <td class="border border-color px-4 py-3 text-sm text-left">{{ service.price }} ريال</td>
             </tr>
@@ -90,6 +92,7 @@ import { Printer } from 'lucide-vue-next'
 import { format } from 'date-fns'
 import type { ApiUserBooking } from '~/composables/useData'
 import { formatTime12Hour } from '~/utils/helpers'
+import { useEmployees } from '~/composables/useEmployees'
 
 interface Props {
   isOpen: boolean
@@ -103,15 +106,36 @@ defineEmits<{
   close: []
 }>()
 
+const { getEmployeesDropdown } = useEmployees()
+const employeesList = ref<Array<{ id: number; name: string }>>([])
+
+// Load employees when modal opens
+watch(() => props.isOpen, async (isOpen) => {
+  if (isOpen && employeesList.value.length === 0) {
+    try {
+      employeesList.value = await getEmployeesDropdown()
+    } catch (error) {
+      console.error('Error loading employees:', error)
+    }
+  }
+}, { immediate: true })
+
 const bookingServices = computed(() => {
   if (!props.booking) return []
   // API booking already has services with all details
-  return props.booking.services.map(s => ({
-    id: s.service_id,
-    name: s.service_name || s.service.name,
-    duration: s.duration,
-    price: s.price
-  }))
+  return props.booking.services.map(s => {
+    const employee = s.employee_id 
+      ? employeesList.value.find(e => e.id === s.employee_id)
+      : null
+    
+    return {
+      id: s.service_id,
+      name: s.service_name || s.service.name,
+      duration: s.duration,
+      price: s.price,
+      employeeName: employee?.name || null
+    }
+  })
 })
 
 const bookingDate = computed(() => {

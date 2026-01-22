@@ -1,4 +1,4 @@
-import type { Service, Booking } from '~/composables/useData'
+import type { LocalService, Booking } from '~/composables/useData'
 
 export const getStatusConfig = (status: 'pending' | 'completed' | 'cancelled') => {
   const configs = {
@@ -18,7 +18,7 @@ export const getStatusConfig = (status: 'pending' | 'completed' | 'cancelled') =
   return configs[status]
 }
 
-export const getServiceNames = (serviceIds: string[], services: Service[]): string => {
+export const getServiceNames = (serviceIds: string[], services: LocalService[]): string => {
   return serviceIds
     .map((id) => {
       const service = services.find((s) => s.id === id)

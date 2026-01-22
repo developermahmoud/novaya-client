@@ -104,7 +104,7 @@
                 : 'border-transparent text-gray-600 hover:text-gray-800'
             ]"
           >
-            {{ filter.label }} ({{ filter.count }})
+            {{ filter.label }}
           </button>
         </div>
 
@@ -183,7 +183,7 @@
               </div>
               <div class="flex gap-2">
                 <button
-                v-if="booking.status === 'completed'"
+                  v-if="booking.status === 'completed'"
                   @click="viewInvoice(booking)"
                   class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
                 >
