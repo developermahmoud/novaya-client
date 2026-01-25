@@ -13,17 +13,9 @@
           <span class="text-xl">📊</span>
           <span>لوحة التحكم</span>
         </NuxtLink>
-        <NuxtLink to="/receptionist/bookings" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
-          <span class="text-xl">📅</span>
-          <span>الحجوزات</span>
-        </NuxtLink>
         <NuxtLink to="/receptionist/customers" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
           <span class="text-xl">👥</span>
           <span>العملاء</span>
-        </NuxtLink>
-        <NuxtLink to="/receptionist/calendar" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
-          <span class="text-xl">📆</span>
-          <span>التقويم</span>
         </NuxtLink>
       </nav>
       

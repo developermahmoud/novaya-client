@@ -424,6 +424,26 @@ export const useData = () => {
     }
   }
 
+  // Create booking for a customer by receptionist (uses /customers/{id}/bookings endpoint)
+  const createCustomerBooking = async (customerId: number, payload: Omit<CreateBookingPayload, 'customer_id'>): Promise<{ success: boolean; error?: string; data?: any }> => {
+    try {
+      const response = await api.post<{ success: boolean; message?: string; data?: any }>(`/customers/${customerId}/bookings`, payload)
+      
+      if (response.data.success) {
+        return { success: true, data: response.data.data }
+      } else {
+        return { success: false, error: response.data.message || 'فشل إنشاء الحجز' }
+      }
+    } catch (error: any) {
+      console.error('Error creating customer booking:', error)
+      
+      // Handle API error response
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'حدث خطأ أثناء إنشاء الحجز'
+      
+      return { success: false, error: errorMessage }
+    }
+  }
+
   interface ApiUserBookingsResponse {
     success: boolean
     message?: string
@@ -636,6 +656,7 @@ export const useData = () => {
     approveBooking,
     deleteBookingService,
     updateBookingServiceEmployee,
+    createCustomerBooking,
   }
 }
 
