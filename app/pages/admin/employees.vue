@@ -190,13 +190,23 @@
             <option value="inactive">غير نشط</option>
           </select>
         </div>
-        <div v-if="showEditModal" class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700">تغيير كلمة المرور (اختياري)</label>
-          <UiInput
-            v-model="employeeForm.password"
-            type="password"
-            placeholder="اتركه فارغاً إذا لم ترد تغيير كلمة المرور"
-          />
+        <div v-if="showEditModal" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">تغيير كلمة المرور (اختياري)</label>
+            <UiInput
+              v-model="employeeForm.password"
+              type="password"
+              placeholder="اتركه فارغاً إذا لم ترد تغيير كلمة المرور"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">تأكيد كلمة المرور</label>
+            <UiInput
+              v-model="employeeForm.passwordConfirmation"
+              type="password"
+              placeholder="تأكيد كلمة المرور"
+            />
+          </div>
         </div>
         <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
           {{ error }}
@@ -364,9 +374,23 @@ const handleSubmit = async () => {
       error.value = 'كلمة المرور وتأكيدها غير متطابقين'
       return
     }
-  } else if (employeeForm.value.password && employeeForm.value.password !== employeeForm.value.passwordConfirmation) {
-    error.value = 'كلمة المرور وتأكيدها غير متطابقين'
-    return
+  } else if (employeeForm.value.password) {
+    // If password is provided, validate it
+    const passwordValidation = validatePassword(employeeForm.value.password)
+    if (!passwordValidation.isValid) {
+      error.value = passwordValidation.error || 'كلمة المرور غير صحيحة'
+      return
+    }
+
+    if (!employeeForm.value.passwordConfirmation) {
+      error.value = 'يجب إدخال تأكيد كلمة المرور'
+      return
+    }
+
+    if (employeeForm.value.password !== employeeForm.value.passwordConfirmation) {
+      error.value = 'كلمة المرور وتأكيدها غير متطابقين'
+      return
+    }
   }
 
   isSubmitting.value = true

@@ -1,7 +1,9 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Sidebar -->
-    <aside class="fixed right-0 top-0 h-full w-64 bg-white shadow-lg z-40 transform transition-transform duration-300 lg:translate-x-0 flex flex-col" :class="{ 'translate-x-0': sidebarOpen, 'translate-x-full': !sidebarOpen }">
+    <aside
+      class="fixed right-0 top-0 h-full w-64 bg-white shadow-lg z-40 transform transition-transform duration-300 lg:translate-x-0 flex flex-col"
+      :class="{ 'translate-x-0': sidebarOpen, 'translate-x-full': !sidebarOpen }">
       <div class="p-6 border-b border-gray-200">
         <NuxtLink to="/" class="flex items-center gap-3">
           <img src="/logo.png" alt="نوفايا" class="h-12 w-auto" />
@@ -9,24 +11,13 @@
         </NuxtLink>
       </div>
       <nav class="p-4 space-y-2 flex-1">
-        <NuxtLink to="/employee/dashboard" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+        <NuxtLink to="/employee/dashboard" class="nav-item"
+          active-class="bg-secondary text-primary border-r-4 border-primary">
           <span class="text-xl">📊</span>
           <span>لوحة التحكم</span>
         </NuxtLink>
-        <NuxtLink to="/employee/schedule" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
-          <span class="text-xl">📅</span>
-          <span>جدول المواعيد</span>
-        </NuxtLink>
-        <NuxtLink to="/employee/bookings" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
-          <span class="text-xl">💼</span>
-          <span>حجوزاتي</span>
-        </NuxtLink>
-        <NuxtLink to="/employee/services" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
-          <span class="text-xl">💅</span>
-          <span>الخدمات</span>
-        </NuxtLink>
       </nav>
-      
+
       <!-- User Info -->
       <div v-if="user" class="p-4 border-t border-gray-200 bg-white">
         <div class="flex items-center gap-3 mb-3">
@@ -38,10 +29,8 @@
             <p class="text-xs text-gray-600 truncate">{{ user.email }}</p>
           </div>
         </div>
-        <button
-          @click="handleLogout"
-          class="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
-        >
+        <button @click="handleLogout"
+          class="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium">
           تسجيل الخروج
         </button>
       </div>
