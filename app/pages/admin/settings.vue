@@ -72,24 +72,40 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">خط العرض (Latitude)</label>
-                <input
-                  v-model.number="settingsForm.latitude"
-                  type="number"
-                  step="any"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                  placeholder="24.7136"
-                />
+                <div class="flex gap-2">
+                  <input
+                    v-model.number="settingsForm.latitude"
+                    type="number"
+                    step="any"
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    placeholder="24.7136"
+                  />
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">خط الطول (Longitude)</label>
-                <input
-                  v-model.number="settingsForm.longitude"
-                  type="number"
-                  step="any"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                  placeholder="46.6753"
-                />
+                <div class="flex gap-2">
+                  <input
+                    v-model.number="settingsForm.longitude"
+                    type="number"
+                    step="any"
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    placeholder="46.6753"
+                  />
+                </div>
               </div>
+            </div>
+            <div class="mt-2">
+              <button
+                @click="getCurrentLocation"
+                :disabled="isGettingLocation"
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <MapPin :size="18" :class="{ 'animate-pulse': isGettingLocation }" />
+                <span>{{ isGettingLocation ? 'جاري جلب الموقع...' : 'استخدام موقعي الحالي' }}</span>
+              </button>
+              <p v-if="locationError" class="mt-2 text-sm text-red-600">{{ locationError }}</p>
             </div>
             <div class="mt-4">
               <p class="text-sm text-gray-600 mb-2">اختر الموقع على الخريطة (اسحب الـ marker لتحديد الموقع):</p>
@@ -199,6 +215,8 @@ const { success: showSuccess, error: showError } = useToast()
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 const error = ref('')
+const isGettingLocation = ref(false)
+const locationError = ref('')
 const mapContainer = ref<HTMLElement | null>(null)
 let map: any = null
 let marker: any = null
@@ -443,6 +461,58 @@ watch(
     }
   }
 )
+
+// Get current user location
+const getCurrentLocation = () => {
+  if (!navigator.geolocation) {
+    locationError.value = 'المتصفح لا يدعم جلب الموقع الجغرافي'
+    return
+  }
+
+  isGettingLocation.value = true
+  locationError.value = ''
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      settingsForm.value.latitude = position.coords.latitude
+      settingsForm.value.longitude = position.coords.longitude
+      
+      // Update map if it exists
+      if (map && marker) {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        marker.setPosition({ lat, lng })
+        map.setCenter({ lat, lng })
+        map.setZoom(15)
+      }
+      
+      isGettingLocation.value = false
+      showSuccess('تم جلب الموقع بنجاح')
+    },
+    (error) => {
+      let errorMessage = 'فشل جلب الموقع الجغرافي'
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage = 'تم رفض طلب الوصول إلى الموقع. يرجى السماح بالوصول إلى الموقع في إعدادات المتصفح'
+          break
+        case error.POSITION_UNAVAILABLE:
+          errorMessage = 'معلومات الموقع غير متوفرة'
+          break
+        case error.TIMEOUT:
+          errorMessage = 'انتهت مهلة طلب الموقع'
+          break
+      }
+      locationError.value = errorMessage
+      isGettingLocation.value = false
+      showError(errorMessage)
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  )
+}
 
 // Save settings
 const handleSave = async () => {

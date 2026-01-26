@@ -17,6 +17,10 @@
           <span class="text-xl">👥</span>
           <span>العملاء</span>
         </NuxtLink>
+        <NuxtLink to="/receptionist/attendance" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+          <span class="text-xl">⏰</span>
+          <span>الحضور والانصراف</span>
+        </NuxtLink>
       </nav>
       
       <!-- User Info -->
