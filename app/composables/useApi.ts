@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
 
-const baseURL = 'http://127.0.0.1:8000/api'
+const baseURL = 'http://novaya-api.test/api'
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

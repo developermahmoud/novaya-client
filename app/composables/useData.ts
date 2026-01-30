@@ -524,12 +524,33 @@ export const useData = () => {
     }
   }
 
-  // Fetch all bookings from API with pagination and optional status filter
-  const fetchAllBookings = async (page: number = 1, status?: 'pending' | 'completed' | 'cancelled'): Promise<{ success: boolean; data?: { bookings: ApiBooking[]; pagination: { current_page: number; per_page: number; total: number; last_page: number; from?: number; to?: number } }; error?: string }> => {
+  // Fetch all bookings from API with pagination and optional filters
+  const fetchAllBookings = async (
+    page: number = 1, 
+    status?: 'pending' | 'completed' | 'cancelled',
+    dateFrom?: string,
+    dateTo?: string,
+    employeeId?: number
+  ): Promise<{ success: boolean; data?: { bookings: ApiBooking[]; pagination: { current_page: number; per_page: number; total: number; last_page: number; from?: number; to?: number } }; error?: string }> => {
     try {
       let url = `/bookings?page=${page}`
+      const params: string[] = []
+      
       if (status) {
-        url += `&status=${status}`
+        params.push(`status=${status}`)
+      }
+      if (dateFrom) {
+        params.push(`date_from=${dateFrom}`)
+      }
+      if (dateTo) {
+        params.push(`date_to=${dateTo}`)
+      }
+      if (employeeId) {
+        params.push(`employee_id=${employeeId}`)
+      }
+      
+      if (params.length > 0) {
+        url += `&${params.join('&')}`
       }
       
       const response = await api.get<ApiBookingsResponse>(url)
