@@ -44,6 +44,15 @@
               إجمالي العملاء: <span class="font-semibold text-gray-800">{{ pagination.total || 0 }}</span>
             </div>
             <button
+              @click="exportToExcel"
+              :disabled="isExporting || customers.length === 0"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <Download :size="18" />
+              <span v-if="isExporting">جاري التصدير...</span>
+              <span v-else>تصدير Excel</span>
+            </button>
+            <button
               @click="showAddModal = true"
               class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
             >
@@ -263,7 +272,8 @@
 </template>
 
 <script setup lang="ts">
-import { Search, Users, Mail, Phone, Calendar, DollarSign, Clock, ArrowLeft, ArrowRight, Plus, CalendarPlus } from 'lucide-vue-next'
+import { Search, Users, Mail, Phone, Calendar, DollarSign, Clock, ArrowLeft, ArrowRight, Plus, CalendarPlus, Download } from 'lucide-vue-next'
+import * as XLSX from 'xlsx'
 import type { Customer } from '~/composables/useCustomers'
 import { useCustomers } from '~/composables/useCustomers'
 import { validateName, validateEmail, validateSaudiMobile, validatePassword, normalizeSaudiMobile } from '~/utils/validation'
@@ -311,6 +321,7 @@ const pagination = ref({
 })
 const isLoadingCustomers = ref(false)
 const customersError = ref('')
+const isExporting = ref(false)
 
 // Customers data
 const customers = ref<Customer[]>([])
@@ -495,6 +506,52 @@ const closeBookingModal = () => {
 const handleBookingCreated = async () => {
   // Reload customers to update booking counts
   await loadCustomers(currentPage.value, searchName.value || undefined)
+}
+
+// Export to Excel
+const exportToExcel = async () => {
+  if (customers.value.length === 0) {
+    alert('لا توجد بيانات للتصدير')
+    return
+  }
+
+  isExporting.value = true
+
+  try {
+    // Prepare data for Excel
+    const excelData = customers.value.map(customer => {
+      return {
+        'رقم العميل': customer.id,
+        'الاسم': customer.name,
+        'البريد الإلكتروني': customer.email,
+        'الجوال': customer.mobile,
+        'الحالة': customer.status === 'active' ? 'نشط' : 'غير نشط',
+        'حجوزات مكتملة': customer.completed_bookings_count || 0,
+        'إجمالي المبلغ': customer.total_amount || 0,
+        'تاريخ التسجيل': formatDate(customer.created_at)
+      }
+    })
+
+    // Create workbook and worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'العملاء')
+
+    // Generate filename with current date
+    const now = new Date()
+    const dateStr = now.toISOString().split('T')[0]
+    const filename = `عملاء_${dateStr}.xlsx`
+
+    // Write file
+    XLSX.writeFile(workbook, filename)
+
+    alert('تم تصدير البيانات بنجاح')
+  } catch (error) {
+    console.error('Error exporting to Excel:', error)
+    alert('حدث خطأ أثناء تصدير البيانات')
+  } finally {
+    isExporting.value = false
+  }
 }
 
 // Cleanup timeout on unmount

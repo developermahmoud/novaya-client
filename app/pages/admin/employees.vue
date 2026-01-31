@@ -7,13 +7,24 @@
           <h1 class="text-2xl font-bold text-gray-800">الموظفين</h1>
           <p class="text-gray-600 mt-1">إدارة موظفي الصالون</p>
         </div>
-        <button
-          @click="showAddModal = true"
-          class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
-        >
-          <Plus :size="20" />
-          <span>إضافة موظف جديد</span>
-        </button>
+        <div class="flex items-center gap-3">
+          <button
+            @click="exportToExcel"
+            :disabled="isExporting || employees.length === 0"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Download :size="18" />
+            <span v-if="isExporting">جاري التصدير...</span>
+            <span v-else>تصدير Excel</span>
+          </button>
+          <button
+            @click="showAddModal = true"
+            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
+          >
+            <Plus :size="20" />
+            <span>إضافة موظف جديد</span>
+          </button>
+        </div>
       </div>
 
       <!-- Error Message -->
@@ -225,7 +236,8 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Edit, Trash2, Users } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, Users, Download } from 'lucide-vue-next'
+import * as XLSX from 'xlsx'
 import type { Employee } from '~/composables/useEmployees'
 import { useEmployees } from '~/composables/useEmployees'
 import type { UserRole } from '~/composables/useAuth'
@@ -247,6 +259,7 @@ const showEditModal = ref(false)
 const editingEmployee = ref<Employee | null>(null)
 const isLoading = ref(false)
 const isSubmitting = ref(false)
+const isExporting = ref(false)
 const error = ref('')
 const employeeForm = ref<{
   name: string
@@ -449,5 +462,51 @@ const closeModal = () => {
     status: 'active'
   }
   error.value = ''
+}
+
+// Export to Excel
+const exportToExcel = async () => {
+  if (employees.value.length === 0) {
+    alert('لا توجد بيانات للتصدير')
+    return
+  }
+
+  isExporting.value = true
+
+  try {
+    // Prepare data for Excel
+    const excelData = employees.value.map(employee => {
+      return {
+        'رقم الموظف': employee.id,
+        'الاسم': employee.name,
+        'البريد الإلكتروني': employee.email,
+        'الجوال': employee.mobile,
+        'الدور': getRoleName(employee.role),
+        'الحالة': employee.status === 'active' ? 'نشط' : 'غير نشط',
+        'أضيف بواسطة': getCreatedBy(employee),
+        'تاريخ الإضافة': formatDate(employee.created_at)
+      }
+    })
+
+    // Create workbook and worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'الموظفين')
+
+    // Generate filename with current date
+    const now = new Date()
+    const dateStr = now.toISOString().split('T')[0]
+    const filename = `موظفين_${dateStr}.xlsx`
+
+    // Write file
+    XLSX.writeFile(workbook, filename)
+
+    alert('تم تصدير البيانات بنجاح')
+  } catch (error) {
+    console.error('Error exporting to Excel:', error)
+    alert('حدث خطأ أثناء تصدير البيانات')
+  } finally {
+    isExporting.value = false
+  }
 }
 </script>

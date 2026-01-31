@@ -655,6 +655,39 @@ export const useData = () => {
     initializeData()
   }
 
+  // Fetch statistics
+  interface StatisticsData {
+    total_bookings: number
+    total_customers: number
+    total_employees: number
+    total_revenue: number
+  }
+
+  interface StatisticsResponse {
+    success: boolean
+    message?: string
+    data: StatisticsData
+  }
+
+  const fetchStatistics = async (): Promise<{ success: boolean; data?: StatisticsData; error?: string }> => {
+    try {
+      const response = await api.get<StatisticsResponse>('/statistics')
+      
+      if (response.data.success && response.data.data) {
+        return {
+          success: true,
+          data: response.data.data
+        }
+      } else {
+        return { success: false, error: response.data.message || 'فشل جلب الإحصائيات' }
+      }
+    } catch (error: any) {
+      console.error('Error fetching statistics:', error)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'حدث خطأ أثناء جلب الإحصائيات'
+      return { success: false, error: errorMessage }
+    }
+  }
+
   return {
     services: readonly(services),
     bookings: readonly(bookings),
@@ -662,6 +695,7 @@ export const useData = () => {
     workingHours: readonly(workingHours),
     settings: readonly(settings),
     isLoadingServices: readonly(isLoadingServices),
+    fetchStatistics,
     isLoadingSettings: readonly(isLoadingSettings),
     addService,
     updateService,
