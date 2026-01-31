@@ -149,6 +149,7 @@ interface ApiBookingsResponse {
   success: boolean
   message?: string
   data: ApiBooking[]
+  total_amount?: number
   current_page: number
   per_page: number
   total: number
@@ -531,7 +532,7 @@ export const useData = () => {
     dateFrom?: string,
     dateTo?: string,
     employeeId?: number
-  ): Promise<{ success: boolean; data?: { bookings: ApiBooking[]; pagination: { current_page: number; per_page: number; total: number; last_page: number; from?: number; to?: number } }; error?: string }> => {
+  ): Promise<{ success: boolean; data?: { bookings: ApiBooking[]; total_amount?: number; pagination: { current_page: number; per_page: number; total: number; last_page: number; from?: number; to?: number } }; error?: string }> => {
     try {
       let url = `/bookings?page=${page}`
       const params: string[] = []
@@ -560,6 +561,7 @@ export const useData = () => {
           success: true,
           data: {
             bookings: response.data.data,
+            total_amount: response.data.total_amount,
             pagination: {
               current_page: response.data.current_page,
               per_page: response.data.per_page,

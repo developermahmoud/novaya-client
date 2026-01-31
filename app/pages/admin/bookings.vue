@@ -17,7 +17,7 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-white rounded-lg shadow-md p-6">
           <div class="flex items-center justify-between">
             <div>
@@ -53,12 +53,33 @@
             </div>
           </div>
         </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-600 text-sm mb-1">إجمالي الإيراد</p>
+              <p class="text-2xl font-bold text-primary">{{ formatCurrency(totalRevenue) }}</p>
+            </div>
+            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <DollarSign :size="24" class="text-primary" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Bookings Section -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex justify-between items-center mb-6">
           <h2 class="text-xl font-bold text-gray-800">جميع الحجوزات</h2>
+          <button
+            @click="exportToExcel"
+            :disabled="isExporting || allBookings.length === 0"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Download :size="18" />
+            <span v-if="isExporting">جاري التصدير...</span>
+            <span v-else>تصدير Excel</span>
+          </button>
         </div>
 
         <!-- Filters -->
@@ -314,7 +335,8 @@
 </template>
 
 <script setup lang="ts">
-import { Calendar, Clock, CheckCircle, User, Phone, Scissors, DollarSign, ArrowLeft, ArrowRight, FileText } from 'lucide-vue-next'
+import { Calendar, Clock, CheckCircle, User, Phone, Scissors, DollarSign, ArrowLeft, ArrowRight, FileText, Download } from 'lucide-vue-next'
+import * as XLSX from 'xlsx'
 import type { ApiBooking, ApproveBookingPayload, ApiUserBooking } from '~/composables/useData'
 import { getStatusConfig } from '~/utils/helpers'
 import type { EmployeeDropdown } from '~/composables/useEmployees'
@@ -350,6 +372,8 @@ const pagination = ref({
 })
 const isLoadingBookings = ref(false)
 const bookingsError = ref('')
+const isExporting = ref(false)
+const totalRevenue = ref<number>(0)
 
 // API bookings data
 const allBookings = ref<ApiBooking[]>([])
@@ -373,6 +397,7 @@ const loadBookings = async (page: number = 1) => {
       allBookings.value = result.data.bookings || []
       pagination.value = result.data.pagination
       currentPage.value = result.data.pagination.current_page
+      totalRevenue.value = result.data.total_amount || 0
     } else {
       bookingsError.value = result.error || 'فشل جلب الحجوزات'
     }
@@ -550,6 +575,73 @@ const nextPage = () => {
     const newPage = currentPage.value + 1
     currentPage.value = newPage
     loadBookings(newPage)
+  }
+}
+
+// Format currency
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('ar-SA', {
+    style: 'decimal',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount) + ' ريال'
+}
+
+// Export to Excel
+const exportToExcel = async () => {
+  if (allBookings.value.length === 0) {
+    alert('لا توجد بيانات للتصدير')
+    return
+  }
+
+  isExporting.value = true
+
+  try {
+    // Prepare data for Excel
+    const excelData = allBookings.value.map(booking => {
+      const services = booking.services.map(s => s.service_name).join('، ')
+      const employeeNames = booking.services
+        .map(s => {
+          const employee = employeesList.value.find(e => e.id === s.employee_id)
+          return employee ? employee.name : 'غير محدد'
+        })
+        .filter((name, index, arr) => arr.indexOf(name) === index)
+        .join('، ')
+
+      return {
+        'رقم الحجز': booking.id,
+        'التاريخ': formatDate(booking.booking_date),
+        'الوقت': formatTime12Hour(booking.booking_time),
+        'العميل': booking.customer?.name || 'غير محدد',
+        'جوال العميل': booking.customer?.mobile || 'غير محدد',
+        'الخدمات': services,
+        'الموظفين': employeeNames,
+        'المبلغ': booking.total_amount,
+        'الحالة': getStatusConfigSafe(booking.status).text,
+        'ملاحظات': booking.notes || '',
+        'تاريخ الإنشاء': formatDate(booking.created_at)
+      }
+    })
+
+    // Create workbook and worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'الحجوزات')
+
+    // Generate filename with current date
+    const now = new Date()
+    const dateStr = now.toISOString().split('T')[0]
+    const filename = `حجوزات_${dateStr}.xlsx`
+
+    // Write file
+    XLSX.writeFile(workbook, filename)
+
+    alert('تم تصدير البيانات بنجاح')
+  } catch (error) {
+    console.error('Error exporting to Excel:', error)
+    alert('حدث خطأ أثناء تصدير البيانات')
+  } finally {
+    isExporting.value = false
   }
 }
 </script>

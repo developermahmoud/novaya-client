@@ -33,9 +33,9 @@
           <span class="text-xl">👨‍💼</span>
           <span>الموظفين</span>
         </NuxtLink>
-        <NuxtLink to="/admin/reports" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
-          <span class="text-xl">📈</span>
-          <span>التقارير</span>
+        <NuxtLink to="/admin/attendance" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
+          <span class="text-xl">⏰</span>
+          <span>الحضور والانصراف</span>
         </NuxtLink>
         <NuxtLink to="/admin/settings" class="nav-item" active-class="bg-secondary text-primary border-r-4 border-primary">
           <span class="text-xl">⚙️</span>

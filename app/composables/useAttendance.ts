@@ -21,6 +21,24 @@ export interface AttendanceStatus {
   check_out: string | null
 }
 
+export interface AdminAttendanceRecord {
+  id: number
+  employee_id: number
+  employee: {
+    id: number
+    name: string
+    email: string
+    mobile: string
+    role: string
+    status: string
+  }
+  date: string
+  check_in: string | null
+  check_out: string | null
+  created_at: string
+  updated_at: string
+}
+
 export const useAttendance = () => {
   const api = useApi()
 
@@ -115,11 +133,76 @@ export const useAttendance = () => {
     }
   }
 
+  // Get all attendance records for admin with pagination and filters
+  interface AdminAttendanceResponse {
+    success: boolean
+    message?: string
+    data: AdminAttendanceRecord[]
+    current_page: number
+    per_page: number
+    total: number
+    last_page: number
+    from?: number
+    to?: number
+  }
+
+  const getAllAttendanceRecords = async (
+    page: number = 1,
+    dateFrom?: string,
+    dateTo?: string,
+    employeeId?: number
+  ): Promise<{ success: boolean; data?: { records: AdminAttendanceRecord[]; pagination: { current_page: number; per_page: number; total: number; last_page: number; from?: number; to?: number } }; error?: string }> => {
+    try {
+      let url = `/attendance?page=${page}`
+      const params: string[] = []
+      
+      if (dateFrom) {
+        params.push(`date_from=${dateFrom}`)
+      }
+      if (dateTo) {
+        params.push(`date_to=${dateTo}`)
+      }
+      if (employeeId) {
+        params.push(`employee_id=${employeeId}`)
+      }
+      
+      if (params.length > 0) {
+        url += `&${params.join('&')}`
+      }
+      
+      const response = await api.get<AdminAttendanceResponse>(url)
+      
+      if (response.data.success && response.data.data) {
+        return {
+          success: true,
+          data: {
+            records: response.data.data,
+            pagination: {
+              current_page: response.data.current_page,
+              per_page: response.data.per_page,
+              total: response.data.total,
+              last_page: response.data.last_page,
+              from: response.data.from,
+              to: response.data.to,
+            }
+          }
+        }
+      } else {
+        return { success: false, error: response.data.message || 'فشل جلب سجلات الحضور' }
+      }
+    } catch (error: any) {
+      console.error('Error fetching attendance records:', error)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'حدث خطأ أثناء جلب سجلات الحضور'
+      return { success: false, error: errorMessage }
+    }
+  }
+
   return {
     getTodayAttendance,
     checkIn,
     checkOut,
     getAttendanceRecords,
     getAttendanceRecord,
+    getAllAttendanceRecords,
   }
 }
