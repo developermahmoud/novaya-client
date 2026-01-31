@@ -64,7 +64,7 @@
         <div class="flex justify-between items-center mb-6">
           <h2 class="text-xl font-bold text-gray-800">قائمة الحجوزات</h2>
           <div class="text-sm text-gray-600">
-            إجمالي الحجوزات: <span class="font-semibold text-gray-800">{{ pagination.total || 0 }}</span>
+            إجمالي الحجوزات: <span class="font-semibold text-gray-800">{{ bookings.length || 0 }}</span>
           </div>
         </div>
 
@@ -245,7 +245,7 @@ definePageMeta({
 
 const route = useRoute()
 const { user } = useAuth()
-const { fetchCustomerBookings, fetchCustomers } = useCustomers()
+const { fetchCustomerBookings, getCustomer } = useCustomers()
 
 const customerId = computed(() => {
   const id = route.params.id
@@ -283,19 +283,18 @@ const loadCustomerInfo = async () => {
   }
 
   try {
-    const result = await fetchCustomers(1)
+    const result = await getCustomer(customerId.value)
     if (result.success && result.data) {
-      const foundCustomer = result.data.customers.find(c => c.id === customerId.value)
-      if (foundCustomer) {
-        customer.value = {
-          id: foundCustomer.id,
-          name: foundCustomer.name,
-          email: foundCustomer.email,
-          mobile: foundCustomer.mobile,
-          status: foundCustomer.status,
-          role: foundCustomer.role
-        }
+      customer.value = {
+        id: result.data.id,
+        name: result.data.name,
+        email: result.data.email,
+        mobile: result.data.mobile,
+        status: result.data.status,
+        role: result.data.role
       }
+    } else {
+      console.error('Failed to load customer:', result.error)
     }
   } catch (error) {
     console.error('Error loading customer info:', error)

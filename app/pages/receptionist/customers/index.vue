@@ -298,7 +298,7 @@ const selectedCustomerId = ref<number | null>(null)
 const selectedCustomerName = ref('')
 
 const searchName = ref('')
-const searchTimeout = ref<NodeJS.Timeout | null>(null)
+const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 // Pagination state
 const currentPage = ref(1)

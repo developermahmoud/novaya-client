@@ -285,6 +285,7 @@ definePageMeta({
 
 const { user } = useAuth()
 const { fetchCustomers, createCustomer } = useCustomers()
+const router = useRouter()
 
 // Add customer modal state
 const showAddModal = ref(false)
@@ -309,7 +310,7 @@ const selectedCustomerId = ref<number | null>(null)
 const selectedCustomerName = ref('')
 
 const searchName = ref('')
-const searchTimeout = ref<NodeJS.Timeout | null>(null)
+const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 // Pagination state
 const currentPage = ref(1)
@@ -506,6 +507,11 @@ const closeBookingModal = () => {
 const handleBookingCreated = async () => {
   // Reload customers to update booking counts
   await loadCustomers(currentPage.value, searchName.value || undefined)
+}
+
+// Navigate to customer bookings page
+const viewCustomerBookings = (customerId: number) => {
+  router.push(`/admin/customers/${customerId}`)
 }
 
 // Export to Excel

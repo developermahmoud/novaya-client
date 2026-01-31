@@ -64,7 +64,7 @@
         <div class="flex justify-between items-center mb-6">
           <h2 class="text-xl font-bold text-gray-800">قائمة الحجوزات</h2>
           <div class="text-sm text-gray-600">
-            إجمالي الحجوزات: <span class="font-semibold text-gray-800">{{ pagination.total || 0 }}</span>
+            إجمالي الحجوزات: <span class="font-semibold text-gray-800">{{ bookings.length || 0 }}</span>
           </div>
         </div>
 

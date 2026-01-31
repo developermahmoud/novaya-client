@@ -63,6 +63,23 @@ export const useCustomers = () => {
     }
   }
 
+  // Get single customer by ID
+  const getCustomer = async (id: number): Promise<{ success: boolean; data?: Customer; error?: string }> => {
+    try {
+      const response = await api.get<ApiResponse<Customer>>(`/customers/${id}`)
+      
+      if (response.data.success && response.data.data) {
+        return { success: true, data: response.data.data }
+      } else {
+        return { success: false, error: response.data.message || 'فشل جلب معلومات العميل' }
+      }
+    } catch (error: any) {
+      console.error('Error fetching customer:', error)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'حدث خطأ أثناء جلب معلومات العميل'
+      return { success: false, error: errorMessage }
+    }
+  }
+
   // Create customer
   const createCustomer = async (data: {
     name: string
@@ -247,6 +264,7 @@ export const useCustomers = () => {
 
   return {
     getCustomers,
+    getCustomer,
     createCustomer,
     updateCustomer,
     deleteCustomer,
